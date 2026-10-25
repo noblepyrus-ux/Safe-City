@@ -17,7 +17,7 @@ El sistema sigue un patrón de arquitectura en capas, completamente containeriza
 
 ```mermaid
 graph TD
-    B[📡 Sensores IoT Simulados] -->|POST /readings cada 5s| B(FastAPI Backend)
+    A[📡 Sensores IoT Simulados] -->|POST /readings cada 5s| B(FastAPI Backend)
     B -->|Evalúa Umbrales| C{¿Nivel Crítico?}
     C -->|Sí| D[💾 MongoDB: Colección alerts]
     C -->|No| E[💾 MongoDB: Colección readings]
@@ -25,7 +25,7 @@ graph TD
     F -->|GET /alerts| B
     B -.->|Motor Async Driver| G[(🗄️ MongoDB 7.0)]
 
-    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style A fill:#009688,stroke:#333,stroke-width:2px
     style B fill:#009688,stroke:#333,stroke-width:2px,color:#fff
     style G fill:#4DB33D,stroke:#333,stroke-width:2px,color:#fff
     style F fill:#e34c26,stroke:#333,stroke-width:2px,color:#fff
