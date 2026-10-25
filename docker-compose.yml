@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Base de datos MongoDB
+  mongo:
+    image: mongo:7.0
+    container_name: safe-city-db
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: safe_city
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - safe-city-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safe-city-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=safe_city
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - safe-city-network
+
+  # Simulador de sensores IoT
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: safe-city-simulator
+    restart: always
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - SIMULATION_INTERVAL=5
+    depends_on:
+      - backend
+    networks:
+      - safe-city-network
+
+  # Frontend con Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: safe-city-web
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - safe-city-network
+
+volumes:
+  mongo_data:
+
+networks:
+  safe-city-network:
+    driver: bridge

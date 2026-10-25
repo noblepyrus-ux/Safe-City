@@ -1,0 +1,22 @@
+# Variables de entorno
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker (opcional, pero a veces se suben los volúmenes)
+*.log
