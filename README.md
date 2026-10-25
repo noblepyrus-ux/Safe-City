@@ -17,7 +17,7 @@ El sistema sigue un patrón de arquitectura en capas, completamente containeriza
 
 ```mermaid
 graph TD
-    A[📡 Sensores IoT Simulados] -->|POST /readings cada 5s| B(FastAPI Backend)
+    B[📡 Sensores IoT Simulados] -->|POST /readings cada 5s| B(FastAPI Backend)
     B -->|Evalúa Umbrales| C{¿Nivel Crítico?}
     C -->|Sí| D[💾 MongoDB: Colección alerts]
     C -->|No| E[💾 MongoDB: Colección readings]
@@ -161,7 +161,7 @@ safecity/
 ## 👥 Autores
 
 - **Andrés Parada** - Desarrollo Backend, Arquitectura y Despliegue
-- *(Agregar aquí los nombres de los demás integrantes del grupo si los hay)*
+- **Jose Soler** - Desarrollo Backend, Arquitectura y Despliegue
 
 ---
 
