@@ -92,12 +92,20 @@ async function showDashboard() {
         currentUser = await request('/auth/me');
         document.getElementById('loginView').style.display = 'none';
         document.getElementById('dashboardView').style.display = 'block';
+        
         const badge = document.getElementById('userBadge');
         badge.innerHTML = '<i class="fa-solid fa-user"></i> ' + currentUser.username + ' (' + currentUser.role + ')';
+        
+        const addBtn = document.getElementById('addSensorBtn');
+        
         if (currentUser.role === 'admin') {
             badge.classList.add('admin');
-            document.getElementById('addSensorBtn').style.display = 'inline-flex';
+            addBtn.style.display = 'inline-flex';  // Mostrar solo para admin
+        } else {
+            badge.classList.remove('admin');
+            addBtn.style.display = 'none';  // Ocultar explícitamente para viewer
         }
+        
         loadData();
     } catch (err) { logout(); }
 }
@@ -143,11 +151,25 @@ async function loadData() {
 function renderSensors(sensors) {
     const grid = document.getElementById('sensorsGrid');
     if (!sensors.length) { grid.innerHTML = '<div class="empty-state">No hay sensores registrados</div>'; return; }
+    
+    const isAdmin = currentUser && currentUser.role === 'admin';
+    
     grid.innerHTML = sensors.map(s => `
         <div class="sensor-card">
             <h3><span class="status ${s.risk_level}"></span>${s.name}</h3>
-<div class="river"><i class="fa-solid fa-water" style="color: #38bdf8; margin-right: 0.3rem"></i>${s.river_name}</div>            <div class="level">${parseFloat(s.water_level).toFixed(2)} <span>m</span></div>
+            <div class="river"><i class="fa-solid fa-water" style="color: #38bdf8; margin-right: 0.3rem"></i>${s.river_name}</div>
+            <div class="level">${parseFloat(s.water_level).toFixed(2)} <span>m</span></div>
             <span class="risk-badge ${s.risk_level}">${s.risk_level}</span>
+            ${isAdmin ? `
+            <div class="sensor-actions">
+                <button class="btn-edit" onclick="openEditModal('${s._id}', '${s.name}', '${s.river_name}', ${s.location?.lat || 0}, ${s.location?.lng || 0})">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn-delete" onclick="deleteSensor('${s._id}', '${s.name}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+            ` : ''}
         </div>
     `).join('');
 }
@@ -211,6 +233,7 @@ function logout() {
     document.getElementById('loginView').style.display = 'flex';
     document.getElementById('loginUser').value = '';
     document.getElementById('loginPass').value = '';
+    document.getElementById('addSensorBtn').style.display = 'none';
 }
 
 function togglePassword(inputId, button) {
@@ -254,3 +277,53 @@ function loadTheme() {
 }
 
 loadTheme();
+
+// ===== EDITAR SENSOR =====
+function openEditModal(id, name, river, lat, lng) {
+    document.getElementById('editSensorId').value = id;
+    document.getElementById('editSensorName').value = name;
+    document.getElementById('editSensorRiver').value = river;
+    document.getElementById('editSensorLat').value = lat;
+    document.getElementById('editSensorLng').value = lng;
+    document.getElementById('editModalError').style.display = 'none';
+    document.getElementById('editSensorModal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('editSensorModal').classList.remove('active');
+}
+
+async function updateSensor() {
+    const id = document.getElementById('editSensorId').value;
+    try {
+        await request(`/sensors/${id}`, 'PUT', {
+            name: document.getElementById('editSensorName').value,
+            river_name: document.getElementById('editSensorRiver').value,
+            location: {
+                lat: parseFloat(document.getElementById('editSensorLat').value),
+                lng: parseFloat(document.getElementById('editSensorLng').value)
+            }
+        });
+        closeEditModal();
+        loadData();
+        alert('✅ Sensor actualizado correctamente');
+    } catch (err) {
+        document.getElementById('editModalError').textContent = err.message;
+        document.getElementById('editModalError').style.display = 'block';
+    }
+}
+
+// ===== ELIMINAR SENSOR =====
+async function deleteSensor(id, name) {
+    if (!confirm(`¿Estás seguro de eliminar "${name}"?\n\nSe eliminarán también todas sus lecturas y alertas asociadas.`)) {
+        return;
+    }
+    
+    try {
+        await request(`/sensors/${id}`, 'DELETE');
+        loadData();
+        alert('✅ Sensor eliminado correctamente');
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}

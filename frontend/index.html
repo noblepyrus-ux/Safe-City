@@ -119,6 +119,37 @@
     </div>
 </div>
 
+<!-- Modal de Editar Sensor -->
+<div class="modal" id="editSensorModal">
+    <div class="modal-content">
+        <h2><i class="fa-solid fa-pen-to-square"></i> Editar Sensor</h2>
+        <div class="error-msg" id="editModalError"></div>
+        <input type="hidden" id="editSensorId">
+        <div class="form-group">
+            <label>Nombre del Sensor</label>
+            <input type="text" id="editSensorName" required>
+        </div>
+        <div class="form-group">
+            <label>Río o Quebrada</label>
+            <input type="text" id="editSensorRiver" required>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="form-group">
+                <label>Latitud</label>
+                <input type="number" id="editSensorLat" step="any" required>
+            </div>
+            <div class="form-group">
+                <label>Longitud</label>
+                <input type="number" id="editSensorLng" step="any" required>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+            <button class="btn" onclick="updateSensor()">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal" id="sensorModal">
     <div class="modal-content">
         <h2><i class="fa-solid fa-plus-circle"></i> Registrar Nuevo Sensor</h2>        <div class="error-msg" id="modalError"></div>

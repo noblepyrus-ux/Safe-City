@@ -622,3 +622,44 @@ body.light-theme .risk-badge.peligro {
     align-items: center;
     gap: 0.4rem;
 }
+
+/* ===== BOTONES DE ACCIÓN EN TARJETAS ===== */
+.sensor-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-edit, .btn-delete {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.btn-edit {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.btn-edit:hover {
+    background: var(--accent-hover);
+}
+
+.btn-delete {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-delete:hover {
+    background: var(--danger-hover);
+}
