@@ -1,29 +1,33 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.database import get_db
 from app.models.sensor import SensorCreate, SensorResponse
 from bson import ObjectId
+from app.services.auth import get_current_user, require_role
+from app.models.user import UserRole
 
 router = APIRouter()
 
 @router.post("/", response_model=SensorResponse, status_code=201)
-async def create_sensor(sensor: SensorCreate):
-    """Registra un nuevo sensor en la base de datos."""
-    db = get_db()
-    # Convertir a diccionario para MongoDB
+async def create_sensor(
+    sensor: SensorCreate,
+    current_user: dict = Depends(require_role(UserRole.ADMIN)),
+    db=Depends(get_db)
+):
+    """Registra un nuevo sensor en la base de datos. Solo ADMIN puede crear."""
     sensor_dict = sensor.model_dump()
     
-    # Insertar en la colección 'sensors'
     result = await db.sensors.insert_one(sensor_dict)
     
-    # Recuperar el sensor creado para devolverlo con el ID
     created_sensor = await db.sensors.find_one({"_id": result.inserted_id})
-    created_sensor["_id"] = str(created_sensor["_id"]) # Convertir ObjectId a string
+    created_sensor["_id"] = str(created_sensor["_id"])
     return created_sensor
 
 @router.get("/", response_model=list[SensorResponse])
-async def get_sensors():
-    """Obtiene la lista de todos los sensores registrados."""
-    db = get_db()
+async def get_sensors(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_db)
+):
+    """Obtiene la lista de todos los sensores registrados. Requiere autenticación."""
     sensors = []
     async for sensor in db.sensors.find():
         sensor["_id"] = str(sensor["_id"])
@@ -31,9 +35,12 @@ async def get_sensors():
     return sensors
 
 @router.get("/{sensor_id}", response_model=SensorResponse)
-async def get_sensor(sensor_id: str):
-    """Obtiene un sensor específico por su ID."""
-    db = get_db()
+async def get_sensor(
+    sensor_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_db)
+):
+    """Obtiene un sensor específico por su ID. Requiere autenticación."""
     try:
         sensor = await db.sensors.find_one({"_id": ObjectId(sensor_id)})
         if not sensor:

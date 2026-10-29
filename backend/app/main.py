@@ -9,7 +9,7 @@ from app.database import connect_to_mongo, close_mongo_connection
 from app.config import settings
 
 # Importar los routers
-from app.routers import sensors, readings, alerts
+from app.routers import sensors, readings, alerts, auth
 
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.add_middleware(
 )
 
 # Registrar los routers con sus prefijos
+app.include_router(auth.router, tags=["Autenticación"])
 app.include_router(sensors.router, prefix="/sensors", tags=["Sensores IoT"])
 app.include_router(readings.router, prefix="/readings", tags=["Lecturas y Riesgo"])
 app.include_router(alerts.router, prefix="/alerts", tags=["Alertas Tempranas"])

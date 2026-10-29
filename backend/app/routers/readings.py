@@ -64,6 +64,24 @@ async def create_reading(reading: ReadingCreate):
     reading_dict["sensor_id"] = str(reading_dict["sensor_id"])  # Convertir de vuelta a string para la respuesta
     return reading_dict
 
+@router.get("/", response_model=list[ReadingResponse])
+async def get_all_readings(limit: int = 100):
+    """Obtiene las lecturas más recientes de todos los sensores."""
+    db = get_db()
+    readings = []
+    
+    try:
+        cursor = db.readings.find().sort("timestamp", -1).limit(limit)
+        
+        async for reading in cursor:
+            reading["_id"] = str(reading["_id"])
+            reading["sensor_id"] = str(reading["sensor_id"])
+            readings.append(reading)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al consultar lecturas: {str(e)}")
+    
+    return readings
+
 
 @router.get("/history", response_model=list[ReadingResponse])
 async def get_readings_history(sensor_id: str, limit: int = 50):
