@@ -331,13 +331,17 @@ async function deleteSensor(id, name) {
 }
 
 
-// ===== SIMULADOR LOCAL DE DATOS EN TIEMPO REAL =====
+
+// ===== SIMULADOR LOCAL (solo se activa si la BD está vacía) =====
 const LOCAL_SENSORS = [
     { _id: 'sim1', name: 'Sensor Puente Aranda', river_name: 'Río Bogotá', base_level: 1.5, water_level: 1.5, risk_level: 'normal', location: { lat: 4.6097, lng: -74.0817 } },
     { _id: 'sim2', name: 'Sensor La Calera', river_name: 'Quebrada La Vieja', base_level: 1.2, water_level: 1.2, risk_level: 'normal', location: { lat: 4.7110, lng: -74.0721 } },
     { _id: 'sim3', name: 'Sensor Bosa', river_name: 'Río Fucha', base_level: 1.8, water_level: 1.8, risk_level: 'alerta', location: { lat: 4.6280, lng: -74.1460 } },
     { _id: 'sim4', name: 'Sensor Usme', river_name: 'Quebrada San Cristóbal', base_level: 1.0, water_level: 1.0, risk_level: 'normal', location: { lat: 4.5615, lng: -74.1500 } }
 ];
+
+let localAlerts = [];
+let simulatorActive = false;
 
 function simulateReadings() {
     LOCAL_SENSORS.forEach(sensor => {
@@ -346,15 +350,30 @@ function simulateReadings() {
         level = Math.max(0.5, level).toFixed(2);
         
         sensor.water_level = level;
+        const oldRisk = sensor.risk_level;
+        
         if (level > 2.5) sensor.risk_level = 'peligro';
         else if (level > 1.8) sensor.risk_level = 'alerta';
         else sensor.risk_level = 'normal';
+        
+        // Si cambió a alerta o peligro, crear alerta
+        if (sensor.risk_level !== 'normal' && sensor.risk_level !== oldRisk) {
+            localAlerts.unshift({
+                _id: 'alert-' + Date.now(),
+                sensor_name: sensor.name,
+                river_name: sensor.river_name,
+                water_level: level,
+                risk_level: sensor.risk_level,
+                timestamp: new Date().toLocaleString('es-CO')
+            });
+            // Mantener solo las últimas 10 alertas
+            if (localAlerts.length > 10) localAlerts = localAlerts.slice(0, 10);
+        }
     });
     
-    if (document.getElementById('dashboardView').style.display === 'block') {
-        renderSensors(LOCAL_SENSORS);
-        updateStats(LOCAL_SENSORS);
-    }
+    renderSensors(LOCAL_SENSORS);
+    updateStats(LOCAL_SENSORS);
+    renderAlerts(localAlerts);
 }
 
 function updateStats(sensors) {
@@ -372,10 +391,56 @@ function updateStats(sensors) {
     }
 }
 
-// Iniciar simulación cada 5 segundos
-setInterval(simulateReadings, 5000);
+// Override de loadData para activar simulador solo si BD está vacía
+const originalLoadData = loadData;
+loadData = async function() {
+    try {
+        await originalLoadData();
+        // Si no hay sensores después de cargar, activar simulador
+        const grid = document.getElementById('sensorsGrid');
+        if (grid && (grid.children.length === 0 || grid.innerHTML.includes('No hay sensores'))) {
+            if (!simulatorActive) {
+                simulatorActive = true;
+                console.log('🔄 BD vacía - Activando simulador local');
+                simulateReadings();
+                setInterval(simulateReadings, 5000);
+            }
+        }
+    } catch (e) {
+        // Si falla la carga, activar simulador
+        if (!simulatorActive) {
+            simulatorActive = true;
+            simulateReadings();
+            setInterval(simulateReadings, 5000);
+        }
+    }
+};
 
-// Ejecutar inmediatamente al cargar
-if (document.getElementById('dashboardView').style.display === 'block') {
-    simulateReadings();
+// Función para renderizar alertas locales
+function renderAlerts(alerts) {
+    const container = document.getElementById('alertsList');
+    if (!container) return;
+    
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle" style="color: #4ade80; margin-right: 0.5rem;"></i> No hay alertas activas recientes</div>';
+        return;
+    }
+    
+    container.innerHTML = alerts.map(a => {
+        const color = a.risk_level === 'peligro' ? '#ef4444' : '#f59e0b';
+        const icon = a.risk_level === 'peligro' ? '🔴' : '🟡';
+        return `
+            <div class="alert-item" style="border-left: 4px solid ${color}; padding: 1rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${icon} ${a.sensor_name}</strong> - ${a.river_name}
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            Nivel: <strong style="color: ${color};">${a.water_level}m</strong> | Riesgo: <strong style="color: ${color}; text-transform: uppercase;">${a.risk_level}</strong>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">${a.timestamp}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
