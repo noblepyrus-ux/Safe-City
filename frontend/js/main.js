@@ -329,3 +329,73 @@ async function deleteSensor(id, name) {
         alert('Error: ' + err.message);
     }
 }
+
+// ===== SIMULADOR DE DATOS EN TIEMPO REAL =====
+function startLocalSimulator() {
+    // Sensores de ejemplo
+    const sensors = [
+        { _id: '1', name: 'Sensor Puente Aranda', river_name: 'Río Bogotá', base_level: 1.5, location: { lat: 4.6097, lng: -74.0817 } },
+        { _id: '2', name: 'Sensor La Calera', river_name: 'Quebrada La Vieja', base_level: 1.2, location: { lat: 4.7110, lng: -74.0721 } },
+        { _id: '3', name: 'Sensor Bosa', river_name: 'Río Fucha', base_level: 1.8, location: { lat: 4.6280, lng: -74.1460 } },
+        { _id: '4', name: 'Sensor Usme', river_name: 'Quebrada San Cristóbal', base_level: 1.0, location: { lat: 4.5615, lng: -74.1500 } }
+    ];
+
+    // Si no hay sensores en la BD, crearlos
+    if (!window._sensors || window._sensors.length === 0) {
+        window._sensors = sensors;
+    }
+
+    // Generar lecturas cada 5 segundos
+    setInterval(() => {
+        window._sensors.forEach(sensor => {
+            // Variación normal ±0.2m
+            let water_level = sensor.base_level + (Math.random() * 0.4 - 0.2);
+            
+            // 15% probabilidad de crecida
+            if (Math.random() < 0.15) {
+                water_level += Math.random() * 2.5;
+            }
+            
+            water_level = Math.max(0.5, water_level).toFixed(2);
+            
+            // Determinar nivel de riesgo
+            let risk_level = 'normal';
+            if (water_level > 2.5) risk_level = 'peligro';
+            else if (water_level > 1.8) risk_level = 'alerta';
+            
+            // Actualizar sensor
+            sensor.water_level = water_level;
+            sensor.risk_level = risk_level;
+            sensor.updated_at = new Date().toISOString();
+        });
+        
+        // Re-renderizar si estamos en el dashboard
+        if (document.getElementById('dashboardView').style.display === 'block') {
+            renderSensors(window._sensors);
+            updateStats();
+        }
+    }, 5000);
+}
+
+function updateStats() {
+    const sensors = window._sensors || [];
+    const total = sensors.length;
+    const normal = sensors.filter(s => s.risk_level === 'normal').length;
+    const alerta = sensors.filter(s => s.risk_level === 'alerta').length;
+    const peligro = sensors.filter(s => s.risk_level === 'peligro').length;
+    
+    const statCards = document.querySelectorAll('.stat-card .value');
+    if (statCards.length >= 4) {
+        statCards[0].textContent = total;
+        statCards[1].textContent = normal;
+        statCards[2].textContent = alerta;
+        statCards[3].textContent = peligro;
+    }
+}
+
+// Iniciar simulador cuando se carga el dashboard
+const originalShowDashboard = showDashboard;
+showDashboard = async function() {
+    await originalShowDashboard();
+    startLocalSimulator();
+};
