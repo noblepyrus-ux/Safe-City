@@ -1,6 +1,6 @@
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:8000' 
-    : 'https://safecity-backend-fgw1.onrender.com';
+    : 'https://safecity-backend-fgwl.onrender.com';
 let token = localStorage.getItem('token');
 let currentUser = null;
 
